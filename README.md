@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Terraria AI Assistant
 
-## Getting Started
+A free-first AI assistant for Terraria players that helps answer questions, explain progression, and guide players using information grounded in Terraria wiki sources.
 
-First, run the development server:
+## Project Goal
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The goal of this project is to build a public, resume-ready AI web app that helps Terraria players ask questions like:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- What should I do after defeating the Eye of Cthulhu?
+- How do I craft the Night's Edge?
+- What armor should I use before fighting Skeletron?
+- What are good early-game accessories for a ranger build?
+- How do I prepare for Hardmode?
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Instead of relying only on general AI knowledge, the assistant will eventually use Terraria wiki information as its main source of truth.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Why This Project Exists
 
-## Learn More
+Terraria has a lot of items, bosses, crafting paths, NPC conditions, world events, and progression steps. New or returning players often need help understanding what to do next without digging through many separate wiki pages.
 
-To learn more about Next.js, take a look at the following resources:
+This project is meant to act like a helpful guide that can explain options clearly, give context, and point users toward useful next steps.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Free-First Approach
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is being built with the intention of staying free for as long as possible.
 
-## Deploy on Vercel
+The first version will focus on:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Free local development
+- Free open-source tools
+- Free hosting options when possible
+- Simple data storage before adding paid services
+- A project structure that can later support stronger AI features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Paid APIs or services may be added later only if they become necessary.
+
+## Planned Features
+
+### Phase 1: Project Foundation
+
+- Create the Next.js app
+- Build the first homepage
+- Set up Git tracking
+- Write project documentation
+- Prepare the repo for GitHub
+
+### Phase 2: Basic Chat Interface
+
+- Create a chat page
+- Add a message input box
+- Display user and assistant messages
+- Build a clean Terraria-themed UI
+
+### Phase 3: Wiki Data System
+
+- Collect Terraria wiki content
+- Store useful page data locally
+- Create a simple search system
+- Return relevant wiki snippets for user questions
+
+### Phase 4: AI Response System
+
+- Connect the chat interface to an AI response system
+- Use retrieved wiki information to ground answers
+- Avoid unsupported guesses when wiki information is missing
+- Add citations or source links where possible
+
+### Phase 5: Memory and Personalization
+
+- Save useful conversation context
+- Let users keep track of their Terraria world progress
+- Remember boss progression, class preference, and current goals
+- Keep memory lightweight and optional
+
+### Phase 6: Public Deployment
+
+- Push the project to GitHub
+- Deploy the app publicly
+- Add screenshots and usage examples
+- Polish the README for recruiters and portfolio viewers
+
+## Tech Stack
+
+Current stack:
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Git
+
+Planned additions:
+
+- Local JSON or SQLite storage
+- Wiki scraping or wiki API access
+- Retrieval system for wiki content
+- AI model or API integration
+- Optional user memory system
+
+## Current Status
+
+The project currently has:
+
+- A working Next.js app
+- A custom Terraria AI Assistant homepage
+- Git tracking set up locally
+
+More features will be added step by step.
