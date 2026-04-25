@@ -1,11 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+const suggestedQuestions = [
+  "What should I do after defeating the Eye of Cthulhu?",
+  "How do I craft the Night's Edge?",
+  "What armor should I use before fighting Skeletron?",
+  "How do I prepare for Hardmode?",
+];
 
 const startingMessages: ChatMessage[] = [
   {
@@ -60,9 +68,36 @@ export default function ChatPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <section className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8">
+        <nav className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <Link
+            href="/"
+            className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400 transition hover:text-emerald-300"
+          >
+            Terraria AI Assistant
+          </Link>
+
+          <div className="flex gap-3">
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+            >
+              Home
+            </Link>
+
+            <a
+              href="https://terraria.wiki.gg/wiki/Terraria_Wiki"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+            >
+              Terraria Wiki
+            </a>
+          </div>
+        </nav>
+
         <div className="mb-8">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400">
-            Terraria AI Assistant
+            Chat Interface
           </p>
 
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl">
@@ -74,6 +109,18 @@ export default function ChatPage() {
             assistant response is temporary, but the page can now store and
             display new messages.
           </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {suggestedQuestions.map((question) => (
+                <button
+                key={question}
+                type="button"
+                onClick={() => setInputValue(question)}
+                className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-emerald-400 hover:text-emerald-300"
+                >
+                {question}
+                </button>
+            ))}
+            </div>
         </div>
 
         <div className="flex flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-900">

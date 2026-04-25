@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -16,6 +18,24 @@ export default function Home() {
           strategy using information pulled from Terraria wiki sources.
         </p>
 
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/chat"
+            className="rounded-xl bg-emerald-400 px-6 py-3 text-center text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+          >
+            Start Chatting
+          </Link>
+
+          <a
+            href="https://terraria.wiki.gg/wiki/Terraria_Wiki"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border border-slate-700 px-6 py-3 text-center text-sm font-semibold text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+          >
+            View Terraria Wiki
+          </a>
+        </div>
+
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="text-lg font-semibold text-white">Wiki-based</h2>
@@ -26,7 +46,9 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-            <h2 className="text-lg font-semibold text-white">Helpful guidance</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Helpful guidance
+            </h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
               The assistant should explain options and guide players without
               always giving only one rigid answer.
