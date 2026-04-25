@@ -1,4 +1,13 @@
-const exampleMessages = [
+"use client";
+
+import { FormEvent, useState } from "react";
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+const startingMessages: ChatMessage[] = [
   {
     role: "assistant",
     content:
@@ -16,6 +25,38 @@ const exampleMessages = [
 ];
 
 export default function ChatPage() {
+  const [messages, setMessages] = useState<ChatMessage[]>(startingMessages);
+  const [inputValue, setInputValue] = useState("");
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedInput = inputValue.trim();
+
+    if (!trimmedInput) {
+      return;
+    }
+
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: trimmedInput,
+    };
+
+    const assistantMessage: ChatMessage = {
+      role: "assistant",
+      content:
+        "This is a temporary response. Later, I will search Terraria wiki data and use it to answer your question more accurately.",
+    };
+
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      userMessage,
+      assistantMessage,
+    ]);
+
+    setInputValue("");
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <section className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8">
@@ -29,15 +70,15 @@ export default function ChatPage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-            This is the first version of the chat interface. The messages below
-            are temporary examples. Later, this page will connect to real wiki
-            search and AI responses.
+            This is the first interactive version of the chat interface. The
+            assistant response is temporary, but the page can now store and
+            display new messages.
           </p>
         </div>
 
         <div className="flex flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-900">
           <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-            {exampleMessages.map((message, index) => {
+            {messages.map((message, index) => {
               const isUser = message.role === "user";
 
               return (
@@ -62,10 +103,12 @@ export default function ChatPage() {
             })}
           </div>
 
-          <form className="border-t border-slate-800 p-4">
+          <form className="border-t border-slate-800 p-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 type="text"
+                value={inputValue}
+                onChange={(event) => setInputValue(event.target.value)}
                 placeholder="Ask about Terraria progression, crafting, bosses, or items..."
                 className="min-h-12 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-400"
               />
