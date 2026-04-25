@@ -8,6 +8,12 @@ type ChatMessage = {
   content: string;
 };
 
+type ChatApiResponse = {
+  role?: "assistant";
+  content?: string;
+  error?: string;
+};
+
 const suggestedQuestions = [
   "What should I do after defeating the Eye of Cthulhu?",
   "How do I craft the Night's Edge?",
@@ -35,13 +41,14 @@ const startingMessages: ChatMessage[] = [
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(startingMessages);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedInput = inputValue.trim();
 
-    if (!trimmedInput) {
+    if (!trimmedInput || isLoading) {
       return;
     }
 
@@ -50,19 +57,53 @@ export default function ChatPage() {
       content: trimmedInput,
     };
 
-    const assistantMessage: ChatMessage = {
-      role: "assistant",
-      content:
-        "This is a temporary response. Later, I will search Terraria wiki data and use it to answer your question more accurately.",
-    };
-
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      userMessage,
-      assistantMessage,
-    ]);
-
+    setMessages((currentMessages) => [...currentMessages, userMessage]);
     setInputValue("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: trimmedInput,
+        }),
+      });
+
+      const data = (await response.json()) as ChatApiResponse;
+
+      if (!response.ok) {
+        throw new Error(data.error || "The chat request failed.");
+      }
+
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content:
+          data.content ||
+          "The backend responded, but it did not include a message.",
+      };
+
+      setMessages((currentMessages) => [...currentMessages, assistantMessage]);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while contacting the backend.";
+
+      const assistantErrorMessage: ChatMessage = {
+        role: "assistant",
+        content: `Sorry, something went wrong: ${errorMessage}`,
+      };
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        assistantErrorMessage,
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -105,22 +146,23 @@ export default function ChatPage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-            This is the first interactive version of the chat interface. The
-            assistant response is temporary, but the page can now store and
-            display new messages.
+            This chat page now sends your message to a backend API route. The
+            backend response is still temporary, but the app now has the basic
+            frontend-to-backend flow that the real assistant will need.
           </p>
+
           <div className="mt-5 flex flex-wrap gap-3">
             {suggestedQuestions.map((question) => (
-                <button
+              <button
                 key={question}
                 type="button"
                 onClick={() => setInputValue(question)}
                 className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-emerald-400 hover:text-emerald-300"
-                >
+              >
                 {question}
-                </button>
+              </button>
             ))}
-            </div>
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col rounded-2xl border border-slate-800 bg-slate-900">
@@ -148,6 +190,17 @@ export default function ChatPage() {
                 </div>
               );
             })}
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm leading-6 text-slate-100">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-70">
+                    Assistant
+                  </p>
+                  <p>Checking the backend...</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <form className="border-t border-slate-800 p-4" onSubmit={handleSubmit}>
@@ -157,14 +210,16 @@ export default function ChatPage() {
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
                 placeholder="Ask about Terraria progression, crafting, bosses, or items..."
-                className="min-h-12 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-400"
+                disabled={isLoading}
+                className="min-h-12 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
                 type="submit"
-                className="min-h-12 rounded-xl bg-emerald-400 px-6 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                disabled={isLoading}
+                className="min-h-12 rounded-xl bg-emerald-400 px-6 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send
+                {isLoading ? "Sending..." : "Send"}
               </button>
             </div>
           </form>
