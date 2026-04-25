@@ -1,3 +1,4 @@
+import { findBestKnowledgeMatch } from "@/lib/searchTerrariaKnowledge";
 import { NextResponse } from "next/server";
 
 type ChatRequestBody = {
@@ -20,9 +21,23 @@ export async function POST(request: Request) {
     );
   }
 
+  const knowledgeResult = findBestKnowledgeMatch(userMessage);
+
+  if (!knowledgeResult) {
+    return NextResponse.json({
+      role: "assistant",
+      content:
+        "I do not have a local wiki entry for that question yet. Right now, I only know a few starter topics like Eye of Cthulhu progression, Night's Edge crafting, Skeletron preparation, Hardmode preparation, and the Guide NPC.",
+    });
+  }
+
+  const knowledgeMatch = knowledgeResult.entry;
+
   return NextResponse.json({
     role: "assistant",
-    content:
-      "This response came from the backend API route. Later, this route will search Terraria wiki data and generate a better answer.",
+    content: knowledgeMatch.summary,
+    matchedTitle: knowledgeMatch.title,
+    sourceUrl: knowledgeMatch.sourceUrl,
+    matchScore: knowledgeResult.score,
   });
 }

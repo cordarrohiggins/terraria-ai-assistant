@@ -6,11 +6,15 @@ import { FormEvent, useState } from "react";
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
+  matchedTitle?: string;
+  sourceUrl?: string;
 };
 
 type ChatApiResponse = {
   role?: "assistant";
   content?: string;
+  matchedTitle?: string;
+  sourceUrl?: string;
   error?: string;
 };
 
@@ -83,6 +87,8 @@ export default function ChatPage() {
         content:
           data.content ||
           "The backend responded, but it did not include a message.",
+        matchedTitle: data.matchedTitle,
+        sourceUrl: data.sourceUrl,
       };
 
       setMessages((currentMessages) => [...currentMessages, assistantMessage]);
@@ -186,6 +192,17 @@ export default function ChatPage() {
                       {isUser ? "You" : "Assistant"}
                     </p>
                     <p>{message.content}</p>
+
+                    {message.sourceUrl && (
+                      <a
+                        href={message.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:border-emerald-400 hover:text-emerald-200"
+                      >
+                        View source{message.matchedTitle ? `: ${message.matchedTitle}` : ""}
+                      </a>
+                    )}
                   </div>
                 </div>
               );
