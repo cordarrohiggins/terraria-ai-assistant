@@ -1,13 +1,18 @@
-import {
-  findKnowledgeMatches,
-  getAvailableKnowledgeTopics,
-  getKnowledgeEntriesByIds,
-} from "@/lib/searchTerrariaKnowledge";
+import { buildWikiContext } from "@/lib/buildWikiContext";
+import { getWikiChunkCount, searchWikiChunks } from "@/lib/searchWikiChunks";
 import { NextResponse } from "next/server";
 
 type ChatRequestBody = {
   message?: string;
 };
+
+function createPreviewText(text: string, maxLength = 700) {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength).trim()}...`;
+}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
@@ -25,55 +30,52 @@ export async function POST(request: Request) {
     );
   }
 
-  const knowledgeResults = findKnowledgeMatches(userMessage, 3);
+  const wikiChunkCount = await getWikiChunkCount();
 
-  if (knowledgeResults.length === 0) {
-    const availableTopics = getAvailableKnowledgeTopics();
-
+  if (wikiChunkCount === 0) {
     return NextResponse.json({
       role: "assistant",
-      content: `I do not have a local wiki entry for that question yet. Try asking about one of these topics: ${availableTopics.join(", ")}.`,
+      content:
+        "I could not find the generated wiki chunk index yet. Run `node scripts/fetchWikiPage.mjs --from-list` and then `node scripts/buildWikiIndex.mjs` to generate local wiki data.",
+      sources: [],
     });
   }
 
-  const primaryMatch = knowledgeResults[0].entry;
+  const wikiResults = await searchWikiChunks(userMessage, 3);
 
-  const strongSearchMatches = knowledgeResults
-    .slice(1)
-    .filter((result) => result.score >= 3)
-    .map((result) => result.entry);
+  if (wikiResults.length === 0) {
+    return NextResponse.json({
+      role: "assistant",
+      content:
+        "I searched the local Terraria wiki index, but I could not find a strong match for that question yet. This may improve as more wiki pages are added to the page list.",
+      sources: [],
+    });
+  }
 
-  const intentionalRelatedMatches = getKnowledgeEntriesByIds(
-    primaryMatch.relatedEntryIds || [],
-  );
-
-  const relatedMatches = [
-    ...strongSearchMatches,
-    ...intentionalRelatedMatches,
-  ].filter(
-    (entry, index, entries) =>
-      entry.id !== primaryMatch.id &&
-      entries.findIndex((currentEntry) => currentEntry.id === entry.id) === index,
-  );
-
-  const relatedText =
-    relatedMatches.length > 0
-      ? `\n\nRelated local topics that may also help: ${relatedMatches
-          .map((entry) => entry.title)
-          .join(", ")}.`
-      : "";
-
-  const sources = [primaryMatch, ...relatedMatches];
+  const wikiContext = buildWikiContext(wikiResults);
+  const primaryResult = wikiResults[0];
+  const primaryChunk = primaryResult.chunk;
 
   return NextResponse.json({
     role: "assistant",
-    content: `${primaryMatch.summary}${relatedText}`,
-    matchedTitle: primaryMatch.title,
-    sourceUrl: primaryMatch.sourceUrl,
-    sources: sources.map((entry) => ({
-      title: entry.title,
-      url: entry.sourceUrl,
-    })),
-    matchScore: knowledgeResults[0].score,
+    content: [
+      `I found relevant Terraria wiki information from ${primaryChunk.title}.`,
+      "",
+      "This is still retrieval-only. The next major step is adding an AI layer that turns this wiki context into a clean answer.",
+      "",
+      createPreviewText(primaryChunk.text),
+    ].join("\n"),
+    matchedTitle: primaryChunk.title,
+    sourceUrl: primaryChunk.sourceUrl,
+    sources: wikiContext.sources,
+    debug: {
+      chunkCount: wikiChunkCount,
+      fullContext: wikiContext.contextText,
+      matchedChunks: wikiResults.map((result) => ({
+        id: result.chunk.id,
+        title: result.chunk.title,
+        score: result.score,
+      })),
+    },
   });
 }
