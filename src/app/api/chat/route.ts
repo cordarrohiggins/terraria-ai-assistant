@@ -1,18 +1,11 @@
 import { buildWikiContext } from "@/lib/buildWikiContext";
+import { generateAssistantAnswer } from "@/lib/generateAssistantAnswer";
 import { getWikiChunkCount, searchWikiChunks } from "@/lib/searchWikiChunks";
 import { NextResponse } from "next/server";
 
 type ChatRequestBody = {
   message?: string;
 };
-
-function createPreviewText(text: string, maxLength = 700) {
-  if (text.length <= maxLength) {
-    return text;
-  }
-
-  return `${text.slice(0, maxLength).trim()}...`;
-}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
@@ -53,24 +46,22 @@ export async function POST(request: Request) {
   }
 
   const wikiContext = buildWikiContext(wikiResults);
-  const primaryResult = wikiResults[0];
-  const primaryChunk = primaryResult.chunk;
+  const answer = await generateAssistantAnswer({
+    userMessage,
+    wikiResults,
+    wikiContext,
+  });
+
+  const primarySource = wikiContext.sources[0];
 
   return NextResponse.json({
     role: "assistant",
-    content: [
-      `I found relevant Terraria wiki information from ${primaryChunk.title}.`,
-      "",
-      "This is still retrieval-only. The next major step is adding an AI layer that turns this wiki context into a clean answer.",
-      "",
-      createPreviewText(primaryChunk.text),
-    ].join("\n"),
-    matchedTitle: primaryChunk.title,
-    sourceUrl: primaryChunk.sourceUrl,
+    content: answer,
+    matchedTitle: primarySource?.title,
+    sourceUrl: primarySource?.url,
     sources: wikiContext.sources,
     debug: {
       chunkCount: wikiChunkCount,
-      fullContext: wikiContext.contextText,
       matchedChunks: wikiResults.map((result) => ({
         id: result.chunk.id,
         title: result.chunk.title,
