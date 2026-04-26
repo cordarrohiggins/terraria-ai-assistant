@@ -50,3 +50,7 @@ export function findBestKnowledgeMatch(
 
   return bestResult;
 }
+
+export function getAvailableKnowledgeTopics() {
+  return terrariaKnowledge.map((entry) => entry.title);
+}

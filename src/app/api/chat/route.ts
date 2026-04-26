@@ -1,4 +1,7 @@
-import { findBestKnowledgeMatch } from "@/lib/searchTerrariaKnowledge";
+import {
+  findBestKnowledgeMatch,
+  getAvailableKnowledgeTopics,
+} from "@/lib/searchTerrariaKnowledge";
 import { NextResponse } from "next/server";
 
 type ChatRequestBody = {
@@ -24,10 +27,11 @@ export async function POST(request: Request) {
   const knowledgeResult = findBestKnowledgeMatch(userMessage);
 
   if (!knowledgeResult) {
+    const availableTopics = getAvailableKnowledgeTopics();
+
     return NextResponse.json({
       role: "assistant",
-      content:
-        "I do not have a local wiki entry for that question yet. Right now, I only know a few starter topics like Eye of Cthulhu progression, Night's Edge crafting, Skeletron preparation, Hardmode preparation, and the Guide NPC.",
+      content: `I do not have a local wiki entry for that question yet. Try asking about one of these topics: ${availableTopics.join(", ")}.`,
     });
   }
 

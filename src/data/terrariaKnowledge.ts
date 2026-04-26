@@ -84,4 +84,87 @@ export const terrariaKnowledge: TerrariaKnowledgeEntry[] = [
       "The Guide is one of the first NPCs players encounter. He can provide crafting information when shown materials and gives general gameplay advice.",
     sourceUrl: "https://terraria.wiki.gg/wiki/Guide",
   },
+    {
+    id: "wings-overview",
+    title: "Wings",
+    category: "item",
+    keywords: [
+      "wings",
+      "get wings",
+      "how to get wings",
+      "flight",
+      "fly",
+      "hardmode wings",
+      "mobility",
+    ],
+    summary:
+      "Wings are mobility accessories that allow flight and slow falling. Most wings are obtained in Hardmode through crafting, enemy drops, treasure bags, or special sources. If a player is still in pre-Hardmode, they usually need to defeat the Wall of Flesh and enter Hardmode before most wing options become available.",
+    sourceUrl: "https://terraria.wiki.gg/wiki/Wings",
+  },
+  {
+    id: "wall-of-flesh-preparation",
+    title: "Preparing for the Wall of Flesh",
+    category: "boss",
+    keywords: [
+      "wall of flesh",
+      "prepare for wall of flesh",
+      "hell boss",
+      "underworld boss",
+      "enter hardmode",
+      "voodoo doll",
+    ],
+    summary:
+      "The Wall of Flesh is the boss that triggers Hardmode when defeated. Before fighting it, players often build a long bridge in the Underworld, bring strong pre-Hardmode gear, use buff potions, and make sure they are ready for the world changes that happen after Hardmode begins.",
+    sourceUrl: "https://terraria.wiki.gg/wiki/Wall_of_Flesh",
+  },
+  {
+    id: "goblin-tinkerer",
+    title: "Goblin Tinkerer",
+    category: "npc",
+    keywords: [
+      "goblin tinkerer",
+      "tinkerer",
+      "reforge",
+      "workshop",
+      "tinkerer's workshop",
+      "goblin army",
+      "combine accessories",
+    ],
+    summary:
+      "The Goblin Tinkerer is an NPC who can reforge items and sells the Tinkerer's Workshop, which is used to combine many accessories. He becomes available after a Goblin Army has been defeated and can be found bound underground before moving into suitable housing.",
+    sourceUrl: "https://terraria.wiki.gg/wiki/Goblin_Tinkerer",
+  },
+  {
+    id: "molten-armor",
+    title: "Molten armor",
+    category: "item",
+    keywords: [
+      "molten armor",
+      "hellstone armor",
+      "best pre hardmode armor",
+      "melee armor",
+      "hellstone",
+      "obsidian",
+      "underworld gear",
+    ],
+    summary:
+      "Molten armor is a strong pre-Hardmode armor set made from Hellstone Bars. It is especially useful for melee-focused players and is commonly used when preparing for late pre-Hardmode challenges such as Skeletron, Queen Bee, or the Wall of Flesh.",
+    sourceUrl: "https://terraria.wiki.gg/wiki/Molten_armor",
+  },
+  {
+    id: "queen-bee-preparation",
+    title: "Preparing for Queen Bee",
+    category: "boss",
+    keywords: [
+      "queen bee",
+      "prepare for queen bee",
+      "jungle boss",
+      "bee boss",
+      "hive",
+      "abeemination",
+    ],
+    summary:
+      "Queen Bee is a pre-Hardmode boss usually fought in the Underground Jungle. Players should prepare mobility, healing, a small arena inside or near the Hive, and weapons that can handle her movement and summoned bees.",
+    sourceUrl: "https://terraria.wiki.gg/wiki/Queen_Bee",
+  },
 ];
