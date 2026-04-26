@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+type ChatSource = {
+  title: string;
+  url: string;
+};
+
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   matchedTitle?: string;
   sourceUrl?: string;
+  sources?: ChatSource[];
 };
 
 type ChatApiResponse = {
@@ -15,6 +21,7 @@ type ChatApiResponse = {
   content?: string;
   matchedTitle?: string;
   sourceUrl?: string;
+  sources?: ChatSource[];
   error?: string;
 };
 
@@ -89,6 +96,7 @@ export default function ChatPage() {
           "The backend responded, but it did not include a message.",
         matchedTitle: data.matchedTitle,
         sourceUrl: data.sourceUrl,
+        sources: data.sources,
       };
 
       setMessages((currentMessages) => [...currentMessages, assistantMessage]);
@@ -193,15 +201,31 @@ export default function ChatPage() {
                     </p>
                     <p>{message.content}</p>
 
-                    {message.sourceUrl && (
-                      <a
-                        href={message.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:border-emerald-400 hover:text-emerald-200"
-                      >
-                        View source{message.matchedTitle ? `: ${message.matchedTitle}` : ""}
-                      </a>
+                    {message.sources && message.sources.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {message.sources.map((source) => (
+                          <a
+                            key={`${source.title}-${source.url}`}
+                            href={source.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:border-emerald-400 hover:text-emerald-200"
+                          >
+                            View source: {source.title}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      message.sourceUrl && (
+                        <a
+                          href={message.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:border-emerald-400 hover:text-emerald-200"
+                        >
+                          View source{message.matchedTitle ? `: ${message.matchedTitle}` : ""}
+                        </a>
+                      )
                     )}
                   </div>
                 </div>

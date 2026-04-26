@@ -8,49 +8,133 @@ export type TerrariaKnowledgeSearchResult = {
   score: number;
 };
 
-export function findBestKnowledgeMatch(
-  userMessage: string,
-): TerrariaKnowledgeSearchResult | null {
-  const normalizedMessage = userMessage.toLowerCase();
+const ignoredSearchWords = new Set([
+  "about",
+  "after",
+  "also",
+  "before",
+  "bring",
+  "could",
+  "defeated",
+  "entering",
+  "fighting",
+  "from",
+  "have",
+  "often",
+  "players",
+  "prepare",
+  "preparing",
+  "should",
+  "stronger",
+  "that",
+  "this",
+  "usually",
+  "useful",
+  "what",
+  "when",
+  "where",
+  "which",
+  "with",
+  "would",
+]);
 
-  let bestResult: TerrariaKnowledgeSearchResult | null = null;
+function normalizeText(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9\s']/g, " ");
+}
 
-  for (const entry of terrariaKnowledge) {
-    let score = 0;
+function getImportantWords(text: string) {
+  return normalizeText(text)
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 3)
+    .filter((word) => !ignoredSearchWords.has(word));
+}
 
-    if (normalizedMessage.includes(entry.title.toLowerCase())) {
-      score += 5;
+function scoreKnowledgeEntry(
+  normalizedMessage: string,
+  importantUserWords: string[],
+  entry: TerrariaKnowledgeEntry,
+) {
+  let score = 0;
+
+  const normalizedTitle = normalizeText(entry.title);
+  const normalizedSummary = normalizeText(entry.summary);
+  const normalizedCategory = normalizeText(entry.category);
+
+  if (normalizedMessage.includes(normalizedTitle)) {
+    score += 5;
+  }
+
+  if (normalizedMessage.includes(normalizedCategory)) {
+    score += 1;
+  }
+
+  for (const keyword of entry.keywords) {
+    const normalizedKeyword = normalizeText(keyword);
+
+    if (normalizedMessage.includes(normalizedKeyword)) {
+      score += 3;
     }
 
-    for (const keyword of entry.keywords) {
-      if (normalizedMessage.includes(keyword.toLowerCase())) {
-        score += 3;
-      }
-    }
+    const keywordWords = getImportantWords(keyword);
 
-    const titleWords = entry.title.toLowerCase().split(" ");
-
-    for (const word of titleWords) {
-      if (word.length > 3 && normalizedMessage.includes(word)) {
+    for (const keywordWord of keywordWords) {
+      if (importantUserWords.includes(keywordWord)) {
         score += 1;
       }
     }
+  }
 
-    if (!bestResult || score > bestResult.score) {
-      bestResult = {
-        entry,
-        score,
-      };
+  const titleWords = getImportantWords(entry.title);
+
+  for (const word of titleWords) {
+    if (importantUserWords.includes(word)) {
+      score += 1;
     }
   }
 
-  if (!bestResult || bestResult.score === 0) {
-    return null;
+  const summaryWords = getImportantWords(entry.summary);
+
+  for (const word of importantUserWords) {
+    if (summaryWords.includes(word)) {
+      score += 0.5;
+    }
   }
 
-  return bestResult;
+  return score;
+}
+
+export function findKnowledgeMatches(
+  userMessage: string,
+  limit = 3,
+): TerrariaKnowledgeSearchResult[] {
+  const normalizedMessage = normalizeText(userMessage);
+  const importantUserWords = getImportantWords(userMessage);
+
+  return terrariaKnowledge
+    .map((entry) => ({
+      entry,
+      score: scoreKnowledgeEntry(normalizedMessage, importantUserWords, entry),
+    }))
+    .filter((result) => result.score >= 1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+export function findBestKnowledgeMatch(
+  userMessage: string,
+): TerrariaKnowledgeSearchResult | null {
+  const matches = findKnowledgeMatches(userMessage, 1);
+
+  return matches[0] || null;
 }
 
 export function getAvailableKnowledgeTopics() {
   return terrariaKnowledge.map((entry) => entry.title);
+}
+
+export function getKnowledgeEntriesByIds(entryIds: string[]) {
+  return entryIds
+    .map((entryId) => terrariaKnowledge.find((entry) => entry.id === entryId))
+    .filter((entry): entry is TerrariaKnowledgeEntry => Boolean(entry));
 }

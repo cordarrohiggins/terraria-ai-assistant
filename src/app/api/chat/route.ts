@@ -1,6 +1,7 @@
 import {
-  findBestKnowledgeMatch,
+  findKnowledgeMatches,
   getAvailableKnowledgeTopics,
+  getKnowledgeEntriesByIds,
 } from "@/lib/searchTerrariaKnowledge";
 import { NextResponse } from "next/server";
 
@@ -24,9 +25,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const knowledgeResult = findBestKnowledgeMatch(userMessage);
+  const knowledgeResults = findKnowledgeMatches(userMessage, 3);
 
-  if (!knowledgeResult) {
+  if (knowledgeResults.length === 0) {
     const availableTopics = getAvailableKnowledgeTopics();
 
     return NextResponse.json({
@@ -35,13 +36,44 @@ export async function POST(request: Request) {
     });
   }
 
-  const knowledgeMatch = knowledgeResult.entry;
+  const primaryMatch = knowledgeResults[0].entry;
+
+  const strongSearchMatches = knowledgeResults
+    .slice(1)
+    .filter((result) => result.score >= 3)
+    .map((result) => result.entry);
+
+  const intentionalRelatedMatches = getKnowledgeEntriesByIds(
+    primaryMatch.relatedEntryIds || [],
+  );
+
+  const relatedMatches = [
+    ...strongSearchMatches,
+    ...intentionalRelatedMatches,
+  ].filter(
+    (entry, index, entries) =>
+      entry.id !== primaryMatch.id &&
+      entries.findIndex((currentEntry) => currentEntry.id === entry.id) === index,
+  );
+
+  const relatedText =
+    relatedMatches.length > 0
+      ? `\n\nRelated local topics that may also help: ${relatedMatches
+          .map((entry) => entry.title)
+          .join(", ")}.`
+      : "";
+
+  const sources = [primaryMatch, ...relatedMatches];
 
   return NextResponse.json({
     role: "assistant",
-    content: knowledgeMatch.summary,
-    matchedTitle: knowledgeMatch.title,
-    sourceUrl: knowledgeMatch.sourceUrl,
-    matchScore: knowledgeResult.score,
+    content: `${primaryMatch.summary}${relatedText}`,
+    matchedTitle: primaryMatch.title,
+    sourceUrl: primaryMatch.sourceUrl,
+    sources: sources.map((entry) => ({
+      title: entry.title,
+      url: entry.sourceUrl,
+    })),
+    matchScore: knowledgeResults[0].score,
   });
 }

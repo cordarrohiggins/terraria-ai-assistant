@@ -5,6 +5,7 @@ export type TerrariaKnowledgeEntry = {
   keywords: string[];
   summary: string;
   sourceUrl: string;
+  relatedEntryIds?: string[];
 };
 
 export const terrariaKnowledge: TerrariaKnowledgeEntry[] = [
@@ -68,6 +69,7 @@ export const terrariaKnowledge: TerrariaKnowledgeEntry[] = [
     summary:
       "Before entering Hardmode, players often prepare by organizing storage, building NPC housing, gathering useful items, improving gear, exploring the world, and preparing for stronger enemies after the Wall of Flesh is defeated.",
     sourceUrl: "https://terraria.wiki.gg/wiki/Hardmode",
+    relatedEntryIds: ["wall-of-flesh-preparation", "molten-armor"],
   },
   {
     id: "guide-npc",
@@ -116,6 +118,7 @@ export const terrariaKnowledge: TerrariaKnowledgeEntry[] = [
     summary:
       "The Wall of Flesh is the boss that triggers Hardmode when defeated. Before fighting it, players often build a long bridge in the Underworld, bring strong pre-Hardmode gear, use buff potions, and make sure they are ready for the world changes that happen after Hardmode begins.",
     sourceUrl: "https://terraria.wiki.gg/wiki/Wall_of_Flesh",
+    relatedEntryIds: ["hardmode-preparation", "molten-armor"],
   },
   {
     id: "goblin-tinkerer",
