@@ -1,0 +1,28 @@
+{
+  "manualPages": [
+    "Night's Edge",
+    "Wings",
+    "Hardmode",
+    "Wall of Flesh",
+    "Goblin Tinkerer",
+    "Eye of Cthulhu",
+    "Skeletron",
+    "Queen Bee",
+    "Molten armor",
+    "Guide"
+  ],
+  "categories": [
+    {
+      "name": "Boss NPCs",
+      "limit": 150
+    },
+    {
+      "name": "Boss Part NPCs",
+      "limit": 75
+    },
+    {
+      "name": "Boss summon items",
+      "limit": 75
+    }
+  ]
+}
