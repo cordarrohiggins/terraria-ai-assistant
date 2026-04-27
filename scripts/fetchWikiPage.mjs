@@ -1,11 +1,39 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const WIKI_API_URL = "https://terraria.wiki.gg/api.php";
 const PAGE_LIST_PATH = path.join(process.cwd(), "scripts", "wikiPageTitles.json");
+const FAILURE_LOG_PATH = path.join(
+  process.cwd(),
+  "scripts",
+  "wikiFetchFailures.json",
+);
 
 const commandLineArgs = process.argv.slice(2);
 const shouldReadFromList = commandLineArgs.includes("--from-list");
+const shouldForceRefetch = commandLineArgs.includes("--force");
+
+const limitArgIndex = commandLineArgs.indexOf("--limit");
+const pageLimit =
+  limitArgIndex !== -1 && commandLineArgs[limitArgIndex + 1]
+    ? Number.parseInt(commandLineArgs[limitArgIndex + 1], 10)
+    : null;
+
+const directPageTitles = commandLineArgs.filter((arg, index) => {
+  if (arg === "--from-list" || arg === "--force" || arg === "--limit") {
+    return false;
+  }
+
+  if (limitArgIndex !== -1 && index === limitArgIndex + 1) {
+    return false;
+  }
+
+  return true;
+});
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 async function getPageTitles() {
   if (shouldReadFromList) {
@@ -16,10 +44,14 @@ async function getPageTitles() {
       throw new Error("wikiPageTitles.json must contain an array of page titles.");
     }
 
-    return pageTitles;
+    return typeof pageLimit === "number" && pageLimit > 0
+      ? pageTitles.slice(0, pageLimit)
+      : pageTitles;
   }
 
-  return commandLineArgs;
+  return typeof pageLimit === "number" && pageLimit > 0
+    ? directPageTitles.slice(0, pageLimit)
+    : directPageTitles;
 }
 
 function createSafeFileName(title) {
@@ -28,6 +60,22 @@ function createSafeFileName(title) {
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function getWikiPageOutputPath(title) {
+  const outputDirectory = path.join(process.cwd(), "wiki-output");
+  const fileName = `${createSafeFileName(title)}.json`;
+
+  return path.join(outputDirectory, fileName);
+}
+
+async function fileExists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function decodeHtmlEntities(text) {
@@ -85,7 +133,7 @@ function removeLowValueLines(text) {
 }
 
 function cleanHtmlToText(html) {
-  return decodeHtmlEntities(removeUnwantedWikiHtml(html))
+  const cleanedText = decodeHtmlEntities(removeUnwantedWikiHtml(html))
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|h[1-6]|li|section)>/gi, "\n")
     .replace(/<li[^>]*>/gi, "- ")
@@ -145,14 +193,18 @@ async function fetchWikiPage(title) {
   };
 }
 
-async function saveWikiPage(wikiPage) {
+async function saveWikiPage(wikiPage, requestedTitle) {
   const outputDirectory = path.join(process.cwd(), "wiki-output");
   await mkdir(outputDirectory, { recursive: true });
 
-  const fileName = `${createSafeFileName(wikiPage.title)}.json`;
-  const outputPath = path.join(outputDirectory, fileName);
+  const outputPath = getWikiPageOutputPath(requestedTitle);
 
-  await writeFile(outputPath, JSON.stringify(wikiPage, null, 2), "utf-8");
+  const pageToSave = {
+    requestedTitle,
+    ...wikiPage,
+  };
+
+  await writeFile(outputPath, JSON.stringify(pageToSave, null, 2), "utf-8");
 
   return outputPath;
 }
@@ -169,20 +221,35 @@ async function main() {
     }
 
     let successCount = 0;
+    let skippedCount = 0;
     let failureCount = 0;
+    const failures = [];
+
+    console.log(`Pages requested: ${pageTitles.length}`);
+    console.log(`Force refetch: ${shouldForceRefetch ? "yes" : "no"}`);
 
     for (const title of pageTitles) {
       try {
+        const outputPath = getWikiPageOutputPath(title);
+
+        if (!shouldForceRefetch && (await fileExists(outputPath))) {
+          skippedCount += 1;
+          console.log(`\nSkipping existing page: ${title}`);
+          continue;
+        }
+
         console.log(`\nFetching: ${title}`);
 
         const wikiPage = await fetchWikiPage(title);
-        const outputPath = await saveWikiPage(wikiPage);
+        const savedPath = await saveWikiPage(wikiPage, title);
 
         successCount += 1;
 
         console.log(`Fetched: ${wikiPage.title}`);
         console.log(`Text length: ${wikiPage.extract.length} characters`);
-        console.log(`Saved to: ${outputPath}`);
+        console.log(`Saved to: ${savedPath}`);
+
+        await sleep(150);
       } catch (error) {
         failureCount += 1;
 
@@ -193,14 +260,27 @@ async function main() {
         } else {
           console.error(error);
         }
+
+        failures.push({
+          title,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
     console.log("\nFetch complete.");
-    console.log(`Successful pages: ${successCount}`);
+    console.log(`Fetched pages: ${successCount}`);
+    console.log(`Skipped existing pages: ${skippedCount}`);
     console.log(`Failed pages: ${failureCount}`);
 
     if (failureCount > 0) {
+      await writeFile(
+        FAILURE_LOG_PATH,
+        JSON.stringify(failures, null, 2),
+        "utf-8",
+      );
+
+      console.log(`Failure log saved to: ${FAILURE_LOG_PATH}`);
       process.exit(1);
     }
   } catch (error) {

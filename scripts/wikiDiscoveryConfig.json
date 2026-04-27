@@ -1,28 +1,82 @@
 {
   "manualPages": [
-    "Night's Edge",
-    "Wings",
+    "Guide:Walkthrough",
+    "Guide:Class setups",
+    "Guide:Armor progression",
+    "Guide:Game progression",
+    "Guide:Crafting 101",
     "Hardmode",
-    "Wall of Flesh",
-    "Goblin Tinkerer",
-    "Eye of Cthulhu",
-    "Skeletron",
-    "Queen Bee",
-    "Molten armor",
-    "Guide"
+    "Pre-Hardmode",
+    "NPCs",
+    "Bosses",
+    "Events"
   ],
   "categories": [
     {
       "name": "Boss NPCs",
-      "limit": 150
+      "limit": 200
     },
     {
       "name": "Boss Part NPCs",
-      "limit": 75
+      "limit": 100
     },
     {
       "name": "Boss summon items",
-      "limit": 75
+      "limit": 150
+    },
+    {
+      "name": "NPCs",
+      "limit": 150
+    },
+    {
+      "name": "Weapon items",
+      "limit": 500
+    },
+    {
+      "name": "Armor items",
+      "limit": 300
+    },
+    {
+      "name": "Accessories",
+      "limit": 500
+    },
+    {
+      "name": "Crafting station items",
+      "limit": 200
+    },
+    {
+      "name": "Ores",
+      "limit": 100
+    },
+    {
+      "name": "Bars",
+      "limit": 100
     }
+  ],
+  "prefixes": [
+    {
+      "namespaceName": "Guide",
+      "prefix": "",
+      "limit": 500
+    }
+  ],
+  "excludedTitlePatterns": [
+    "/",
+    "Category:",
+    "Template:",
+    "File:",
+    "Module:",
+    "User:",
+    "Talk:",
+    "List of",
+    "Data IDs",
+    "Internal Item ID",
+    "Bestiary",
+    "Legacy:",
+    "Old-gen console",
+    "3DS",
+    "(mobile)",
+    "(old-gen console)",
+    "(3DS)"
   ]
 }

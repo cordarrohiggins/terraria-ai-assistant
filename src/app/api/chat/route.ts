@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const wikiContext = buildWikiContext(wikiResults);
+  const wikiContext = buildWikiContext(wikiResults, userMessage);
   const answer = await generateAssistantAnswer({
     userMessage,
     wikiResults,

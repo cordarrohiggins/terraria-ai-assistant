@@ -1,7 +1,17 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const WIKI_OUTPUT_DIRECTORY = path.join(process.cwd(), "wiki-output");
+const PAGE_TITLES_PATH = path.join(
+  process.cwd(),
+  "scripts",
+  "wikiPageTitles.json",
+);
+const DISCOVERY_CONFIG_PATH = path.join(
+  process.cwd(),
+  "scripts",
+  "wikiDiscoveryConfig.json",
+);
 const GENERATED_DATA_DIRECTORY = path.join(
   process.cwd(),
   "src",
@@ -29,12 +39,16 @@ function countWords(text) {
   return normalizeWhitespace(text).split(/\s+/).filter(Boolean).length;
 }
 
-function createChunkId(title, chunkIndex) {
-  return `${title
+function createSafeFileName(title) {
+  return title
     .toLowerCase()
     .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")}-${chunkIndex}`;
+    .replace(/^-+|-+$/g, "");
+}
+
+function createChunkId(title, chunkIndex) {
+  return `${createSafeFileName(title)}-${chunkIndex}`;
 }
 
 function splitTextIntoSentences(text) {
@@ -242,26 +256,80 @@ function chunkWikiPage(wikiPage) {
   }));
 }
 
-async function readWikiPages() {
-  const fileNames = await readdir(WIKI_OUTPUT_DIRECTORY);
-  const jsonFileNames = fileNames.filter((fileName) =>
-    fileName.endsWith(".json"),
-  );
+async function readRequestedPageTitles() {
+  const fileContents = await readFile(PAGE_TITLES_PATH, "utf-8");
+  const pageTitles = JSON.parse(fileContents);
 
+  if (!Array.isArray(pageTitles)) {
+    throw new Error("wikiPageTitles.json must contain an array of page titles.");
+  }
+
+  return pageTitles;
+}
+
+async function readExcludedTitlePatterns() {
+  const fileContents = await readFile(DISCOVERY_CONFIG_PATH, "utf-8");
+  const config = JSON.parse(fileContents);
+
+  if (
+    config.excludedTitlePatterns !== undefined &&
+    !Array.isArray(config.excludedTitlePatterns)
+  ) {
+    throw new Error(
+      "wikiDiscoveryConfig.json excludedTitlePatterns must be an array if provided.",
+    );
+  }
+
+  return config.excludedTitlePatterns || [];
+}
+
+function shouldExcludeTitle(title, excludedTitlePatterns) {
+  const normalizedTitle = title.toLowerCase();
+
+  return excludedTitlePatterns.some((pattern) =>
+    normalizedTitle.includes(String(pattern).toLowerCase()),
+  );
+}
+
+
+async function readWikiPages() {
+  const requestedTitles = await readRequestedPageTitles();
+  const excludedTitlePatterns = await readExcludedTitlePatterns();
   const wikiPages = [];
 
-  for (const fileName of jsonFileNames) {
+  let missingFileCount = 0;
+  let invalidFileCount = 0;
+  let excludedFinalTitleCount = 0;
+
+  for (const title of requestedTitles) {
+    const fileName = `${createSafeFileName(title)}.json`;
     const filePath = path.join(WIKI_OUTPUT_DIRECTORY, fileName);
-    const fileContents = await readFile(filePath, "utf-8");
-    const wikiPage = JSON.parse(fileContents);
 
-    if (!wikiPage.title || !wikiPage.extract || !wikiPage.sourceUrl) {
-      console.warn(`Skipping invalid wiki page file: ${fileName}`);
-      continue;
+    try {
+      const fileContents = await readFile(filePath, "utf-8");
+      const wikiPage = JSON.parse(fileContents);
+
+      if (!wikiPage.title || !wikiPage.extract || !wikiPage.sourceUrl) {
+        invalidFileCount += 1;
+        console.warn(`Skipping invalid wiki page file: ${fileName}`);
+        continue;
+      }
+
+      if (shouldExcludeTitle(wikiPage.title, excludedTitlePatterns)) {
+        excludedFinalTitleCount += 1;
+        continue;
+      }
+
+      wikiPages.push(wikiPage);
+    } catch {
+      missingFileCount += 1;
     }
-
-    wikiPages.push(wikiPage);
   }
+
+  console.log(`Requested page titles: ${requestedTitles.length}`);
+  console.log(`Missing fetched files: ${missingFileCount}`);
+  console.log(`Invalid fetched files: ${invalidFileCount}`);
+  console.log(`Excluded final-title pages: ${excludedFinalTitleCount}`);
 
   return wikiPages;
 }
