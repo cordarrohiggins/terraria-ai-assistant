@@ -60,6 +60,14 @@
       "limit": 500
     }
   ],
+  "linkDiscovery": {
+    "enabled": true,
+    "sourceTitlePatterns": [
+      "Guide:"
+    ],
+    "limitPerSource": 100,
+    "totalLimit": 1500
+  },
   "excludedTitlePatterns": [
     "/",
     "Category:",

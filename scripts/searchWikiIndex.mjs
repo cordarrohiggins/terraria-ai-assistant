@@ -24,9 +24,6 @@ const ignoredSearchWords = new Set([
   "before",
   "bring",
   "could",
-  "defeated",
-  "entering",
-  "fighting",
   "from",
   "have",
   "how",
@@ -67,6 +64,25 @@ function getUniqueWords(words) {
   return [...new Set(words)];
 }
 
+function isPreparationQuestion(normalizedQuery) {
+  return (
+    normalizedQuery.includes("prepare") ||
+    normalizedQuery.includes("preparing") ||
+    normalizedQuery.includes("strategy") ||
+    normalizedQuery.includes("strategies") ||
+    normalizedQuery.includes("beat") ||
+    normalizedQuery.includes("fight")
+  );
+}
+
+function isStrategyLikeTitle(normalizedTitle) {
+  return (
+    normalizedTitle.includes("guide") ||
+    normalizedTitle.includes("strategy") ||
+    normalizedTitle.includes("strategies")
+  );
+}
+
 function scoreChunk(queryText, chunk) {
   const normalizedQuery = normalizeText(queryText);
   const normalizedTitle = normalizeText(chunk.title);
@@ -103,41 +119,131 @@ function scoreChunk(queryText, chunk) {
     score += 12;
   }
 
-  if (
-    normalizedChunkText.includes("the jungle grows restless") ||
-    normalizedChunkText.includes("defeating each of the three mechanical bosses")
-  ) {
-    score += 12;
+  const isAcquisitionQuestion =
+    normalizedQuery.includes("get") ||
+    normalizedQuery.includes("obtain") ||
+    normalizedQuery.includes("craft") ||
+    normalizedQuery.includes("make") ||
+    normalizedQuery.includes("find") ||
+    normalizedQuery.includes("buy") ||
+    normalizedQuery.includes("drop") ||
+    normalizedQuery.includes("where");
+
+  const acquisitionWords = [
+    "obtained",
+    "obtain",
+    "crafted",
+    "craft",
+    "dropped",
+    "drop",
+    "bought",
+    "buy",
+    "sold",
+    "found",
+    "find",
+    "loot",
+    "chest",
+    "enemy",
+    "enemies",
+    "requires",
+    "require",
+    "material",
+    "materials",
+    "farmed",
+    "farm",
+    "dropped by",
+    "sold by",
+  ];
+
+  const acquisitionIntentWords = new Set([
+    "get",
+    "obtain",
+    "craft",
+    "make",
+    "find",
+    "buy",
+    "drop",
+    "where",
+  ]);
+
+  const topicWords = queryWords.filter(
+    (queryWord) => !acquisitionIntentWords.has(queryWord),
+  );
+
+  const topicMentionsInChunk = topicWords.reduce((total, topicWord) => {
+    const matches = normalizedChunkText.match(new RegExp(`\\b${topicWord}\\b`, "g"));
+
+    return total + (matches?.length || 0);
+  }, 0);
+
+  const topicMatchesTitle = topicWords.some((topicWord) =>
+    normalizedTitle.includes(topicWord),
+  );
+
+  let acquisitionWordMatches = 0;
+
+  if (isAcquisitionQuestion) {
+    for (const word of acquisitionWords) {
+      if (normalizedChunkText.includes(word)) {
+        acquisitionWordMatches += 1;
+        score += 2;
+      }
+    }
+
+    if (acquisitionWordMatches === 0) {
+      score -= 18;
+    }
+
+    if (!topicMatchesTitle && topicMentionsInChunk < 2) {
+      score -= 18;
+    }
   }
 
-  if (
-    normalizedChunkText.includes("achievement") ||
-    normalizedChunkText.includes("category challenger") ||
-    normalizedChunkText.includes("slayer of worlds") ||
-    normalizedChunkText.includes("desktop console and mobile versions")
-  ) {
-    score -= 10;
+  const looksLikeVersionHistory =
+    normalizedChunkText.includes("introduced") ||
+    normalizedChunkText.includes("version") ||
+    normalizedChunkText.includes("release") ||
+    normalizedChunkText.includes("desktop release") ||
+    normalizedChunkText.includes("console release") ||
+    normalizedChunkText.includes("3ds release") ||
+    normalizedChunkText.includes("old gen") ||
+    normalizedChunkText.includes("now require") ||
+    normalizedChunkText.includes("now requires") ||
+    normalizedChunkText.includes("changed from") ||
+    normalizedChunkText.includes("changed to");
+
+  const looksLikeInternalData =
+    normalizedChunkText.includes("initializer") ||
+    normalizedChunkText.includes("internal item id") ||
+    normalizedChunkText.includes("internal npc id") ||
+    normalizedChunkText.includes("internal projectile id");
+
+  if (looksLikeVersionHistory) {
+    score -= isAcquisitionQuestion ? 30 : 12;
   }
 
-  const isPreparationQuestion =
-    normalizedQuery.includes("prepare") ||
-    normalizedQuery.includes("preparing") ||
-    normalizedQuery.includes("strategy") ||
-    normalizedQuery.includes("strategies") ||
-    normalizedQuery.includes("beat") ||
-    normalizedQuery.includes("fight");
-
-  const isStrategyPage =
-    normalizedTitle.includes("guide") ||
-    normalizedTitle.includes("strategies") ||
-    normalizedTitle.includes("strategy");
+  if (looksLikeInternalData) {
+    score -= 30;
+  }
 
   const hasTopicMatchInTitle = queryWords.some((queryWord) =>
     normalizedTitle.includes(queryWord),
   );
 
-  if (isPreparationQuestion && isStrategyPage && hasTopicMatchInTitle) {
+  if (
+    isPreparationQuestion(normalizedQuery) &&
+    isStrategyLikeTitle(normalizedTitle) &&
+    hasTopicMatchInTitle
+  ) {
     score += 20;
+  }
+
+  if (
+    normalizedChunkText.includes("achievement") ||
+    normalizedChunkText.includes("category challenger") ||
+    normalizedChunkText.includes("desktop console and mobile versions")
+  ) {
+    score -= 8;
   }
 
   return Math.max(score, 0);
@@ -165,18 +271,6 @@ function scoreSentence(queryText, sentence) {
     if (normalizedSentence.includes(queryWord)) {
       score += 1;
     }
-  }
-
-  if (normalizedSentence.includes("defeating each of the three mechanical bosses")) {
-    score += 5;
-  }
-
-  if (normalizedSentence.includes("the jungle grows restless")) {
-    score += 5;
-  }
-
-  if (normalizedSentence.includes("plantera")) {
-    score += 2;
   }
 
   return score;
@@ -214,29 +308,64 @@ async function main() {
   const chunks = await loadWikiChunks();
 
   const scoredResults = chunks
-  .map((chunk) => ({
-    chunk,
-    score: scoreChunk(query, chunk),
-  }))
-  .filter((result) => result.score > 0)
-  .sort((a, b) => b.score - a.score);
+    .map((chunk) => ({
+      chunk,
+      score: scoreChunk(query, chunk),
+    }))
+    .filter((result) => result.score > 0)
+    .sort((a, b) => b.score - a.score);
 
-  const bestResultBySource = new Map();
+  const topScore = scoredResults[0]?.score || 0;
+  const normalizedQuery = normalizeText(query);
 
-  for (const result of scoredResults) {
+  const isAcquisitionSearch =
+    normalizedQuery.includes("get") ||
+    normalizedQuery.includes("obtain") ||
+    normalizedQuery.includes("craft") ||
+    normalizedQuery.includes("make") ||
+    normalizedQuery.includes("find") ||
+    normalizedQuery.includes("buy") ||
+    normalizedQuery.includes("drop") ||
+    normalizedQuery.includes("where");
+
+  const minimumScore = isAcquisitionSearch
+    ? Math.max(8, topScore * 0.5)
+    : Math.max(8, topScore * 0.35);
+
+  const filteredResults = scoredResults.filter(
+    (result) => result.score >= minimumScore,
+  );
+
+  const topSourceUrl = filteredResults[0]?.chunk.sourceUrl;
+  const sourceCounts = new Map();
+  const selectedChunkIds = new Set();
+  const selectedResults = [];
+
+  for (const result of filteredResults) {
     const sourceKey = result.chunk.sourceUrl;
+    const chunkId = result.chunk.id;
 
-    if (!bestResultBySource.has(sourceKey)) {
-      bestResultBySource.set(sourceKey, result);
+    if (selectedChunkIds.has(chunkId)) {
+      continue;
+    }
+
+    const currentSourceCount = sourceCounts.get(sourceKey) || 0;
+    const maxChunksForSource = sourceKey === topSourceUrl ? 3 : 1;
+
+    if (currentSourceCount >= maxChunksForSource) {
+      continue;
+    }
+
+    selectedResults.push(result);
+    selectedChunkIds.add(chunkId);
+    sourceCounts.set(sourceKey, currentSourceCount + 1);
+
+    if (selectedResults.length >= 5) {
+      break;
     }
   }
 
-  const topScore = scoredResults[0]?.score || 0;
-  const minimumScore = Math.max(20, topScore * 0.4);
-
-  const results = [...bestResultBySource.values()]
-    .filter((result) => result.score >= minimumScore)
-    .slice(0, 5);
+  const results = selectedResults;
 
   console.log(`Search query: ${query}`);
   console.log(`Chunks searched: ${chunks.length}`);

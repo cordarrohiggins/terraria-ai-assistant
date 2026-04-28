@@ -17,9 +17,6 @@ const ignoredSearchWords = new Set([
   "before",
   "bring",
   "could",
-  "defeated",
-  "entering",
-  "fighting",
   "from",
   "have",
   "how",
@@ -29,8 +26,6 @@ const ignoredSearchWords = new Set([
   "much",
   "often",
   "players",
-  "prepare",
-  "preparing",
   "should",
   "that",
   "this",
@@ -79,22 +74,6 @@ function scoreSentence(userMessage: string, sentence: string) {
     if (normalizedSentence.includes(queryWord)) {
       score += 1;
     }
-  }
-
-  if (
-    normalizedSentence.includes(
-      "defeating each of the three mechanical bosses",
-    )
-  ) {
-    score += 5;
-  }
-
-  if (normalizedSentence.includes("the jungle grows restless")) {
-    score += 5;
-  }
-
-  if (normalizedSentence.includes("plantera")) {
-    score += 2;
   }
 
   return score;

@@ -26,6 +26,9 @@ export async function generateWithOllama({
       model,
       prompt,
       stream: false,
+      options: {
+        temperature: 0.1,
+      },
     }),
   });
 

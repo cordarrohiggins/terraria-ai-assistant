@@ -44,6 +44,12 @@ async function readDiscoveryConfig() {
     manualPages: config.manualPages,
     categories: config.categories,
     prefixes: config.prefixes || [],
+    linkDiscovery: config.linkDiscovery || {
+      enabled: false,
+      sourceTitlePatterns: [],
+      limitPerSource: 100,
+      totalLimit: 1000,
+    },
     excludedTitlePatterns: config.excludedTitlePatterns || [],
   };
 }
@@ -52,6 +58,14 @@ function shouldExcludeTitle(title, excludedTitlePatterns) {
   const normalizedTitle = title.toLowerCase();
 
   return excludedTitlePatterns.some((pattern) =>
+    normalizedTitle.includes(String(pattern).toLowerCase()),
+  );
+}
+
+function titleMatchesAnyPattern(title, patterns) {
+  const normalizedTitle = title.toLowerCase();
+
+  return patterns.some((pattern) =>
     normalizedTitle.includes(String(pattern).toLowerCase()),
   );
 }
@@ -229,6 +243,115 @@ async function fetchPagesByPrefix({ namespaceId, prefix, limit }) {
   return pageTitles;
 }
 
+async function fetchLinksFromPage(title, limit) {
+  const linkedTitles = [];
+  let continuationToken;
+
+  do {
+    const url = new URL(WIKI_API_URL);
+
+    url.searchParams.set("action", "query");
+    url.searchParams.set("format", "json");
+    url.searchParams.set("formatversion", "2");
+    url.searchParams.set("prop", "links");
+    url.searchParams.set("titles", title);
+    url.searchParams.set("plnamespace", "0");
+    url.searchParams.set("pllimit", String(Math.min(limit, 500)));
+
+    if (continuationToken) {
+      url.searchParams.set("plcontinue", continuationToken);
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "terraria-ai-assistant/0.1 learning project by cordarrohiggins",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Link request failed for ${title} with status ${response.status}`,
+      );
+    }
+
+    const data = await response.json();
+    const pages = data.query?.pages || [];
+
+    for (const page of pages) {
+      const links = page.links || [];
+
+      for (const link of links) {
+        if (link.title && linkedTitles.length < limit) {
+          linkedTitles.push(link.title);
+        }
+      }
+    }
+
+    continuationToken = data.continue?.plcontinue;
+
+    if (linkedTitles.length >= limit) {
+      break;
+    }
+  } while (continuationToken);
+
+  return linkedTitles;
+}
+
+async function discoverLinkedPages({
+  sourceTitles,
+  linkDiscovery,
+  excludedTitlePatterns,
+}) {
+  if (!linkDiscovery.enabled) {
+    return [];
+  }
+
+  const sourceTitlePatterns = linkDiscovery.sourceTitlePatterns || [];
+  const limitPerSource = linkDiscovery.limitPerSource || 100;
+  const totalLimit = linkDiscovery.totalLimit || 1000;
+
+  const linkSourceTitles = sourceTitles.filter((title) =>
+    titleMatchesAnyPattern(title, sourceTitlePatterns),
+  );
+
+  const linkedTitles = [];
+
+  console.log(`\nDiscovering links from ${linkSourceTitles.length} source pages`);
+
+  for (const sourceTitle of linkSourceTitles) {
+    if (linkedTitles.length >= totalLimit) {
+      break;
+    }
+
+    try {
+      const pageLinks = await fetchLinksFromPage(sourceTitle, limitPerSource);
+
+      const filteredPageLinks = pageLinks.filter(
+        (title) => !shouldExcludeTitle(title, excludedTitlePatterns),
+      );
+
+      for (const linkedTitle of filteredPageLinks) {
+        if (linkedTitles.length >= totalLimit) {
+          break;
+        }
+
+        linkedTitles.push(linkedTitle);
+      }
+    } catch (error) {
+      console.warn(`Could not discover links from ${sourceTitle}`);
+
+      if (error instanceof Error) {
+        console.warn(error.message);
+      }
+    }
+  }
+
+  console.log(`Discovered ${linkedTitles.length} linked page references`);
+
+  return linkedTitles;
+}
+
 function getUniqueSortedTitles(titles) {
   return [...new Set(titles)]
     .map((title) => title.trim())
@@ -291,9 +414,20 @@ async function main() {
       (title) => !shouldExcludeTitle(title, config.excludedTitlePatterns),
     );
 
-    const allTitles = getUniqueSortedTitles([
+    const firstPassTitles = getUniqueSortedTitles([
       ...filteredManualPages,
       ...discoveredTitles,
+    ]);
+
+    const linkedTitles = await discoverLinkedPages({
+      sourceTitles: firstPassTitles,
+      linkDiscovery: config.linkDiscovery,
+      excludedTitlePatterns: config.excludedTitlePatterns,
+    });
+
+    const allTitles = getUniqueSortedTitles([
+      ...firstPassTitles,
+      ...linkedTitles,
     ]);
 
     await writeFile(
@@ -305,7 +439,8 @@ async function main() {
     console.log("\nDiscovery complete.");
     console.log(`Manual pages: ${config.manualPages.length}`);
     console.log(`Manual pages kept: ${filteredManualPages.length}`);
-    console.log(`Discovered pages kept: ${discoveredTitles.length}`);
+    console.log(`Discovered category/prefix pages kept: ${discoveredTitles.length}`);
+    console.log(`Linked page references kept: ${linkedTitles.length}`);
     console.log(`Unique total pages: ${allTitles.length}`);
     console.log(`Saved to: ${PAGE_TITLES_OUTPUT_PATH}`);
   } catch (error) {
