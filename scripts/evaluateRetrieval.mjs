@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+const EVAL_QUESTIONS_PATH = path.join(
+  process.cwd(),
+  "scripts",
+  "evalQuestions.json",
+);
+
 const WIKI_CHUNKS_PATH = path.join(
   process.cwd(),
   "src",
@@ -8,14 +14,6 @@ const WIKI_CHUNKS_PATH = path.join(
   "generated",
   "wikiChunks.json",
 );
-
-const query = process.argv.slice(2).join(" ").trim();
-
-if (!query) {
-  console.error("Please provide a search query.");
-  console.error('Example: node scripts/searchWikiIndex.mjs "How do I craft Night\'s Edge?"');
-  process.exit(1);
-}
 
 const ignoredSearchWords = new Set([
   "about",
@@ -28,7 +26,6 @@ const ignoredSearchWords = new Set([
   "have",
   "how",
   "into",
-  "make",
   "many",
   "much",
   "often",
@@ -72,6 +69,19 @@ function isPreparationQuestion(normalizedQuery) {
     normalizedQuery.includes("strategies") ||
     normalizedQuery.includes("beat") ||
     normalizedQuery.includes("fight")
+  );
+}
+
+function isAcquisitionQuestion(normalizedQuery) {
+  return (
+    normalizedQuery.includes("get") ||
+    normalizedQuery.includes("obtain") ||
+    normalizedQuery.includes("craft") ||
+    normalizedQuery.includes("make") ||
+    normalizedQuery.includes("find") ||
+    normalizedQuery.includes("buy") ||
+    normalizedQuery.includes("drop") ||
+    normalizedQuery.includes("where")
   );
 }
 
@@ -119,15 +129,17 @@ function scoreChunk(queryText, chunk) {
     score += 12;
   }
 
-  const isAcquisitionQuestion =
-    normalizedQuery.includes("get") ||
-    normalizedQuery.includes("obtain") ||
-    normalizedQuery.includes("craft") ||
-    normalizedQuery.includes("make") ||
-    normalizedQuery.includes("find") ||
-    normalizedQuery.includes("buy") ||
-    normalizedQuery.includes("drop") ||
-    normalizedQuery.includes("where");
+  const hasTopicMatchInTitle = queryWords.some((queryWord) =>
+    normalizedTitle.includes(queryWord),
+  );
+
+  if (
+    isPreparationQuestion(normalizedQuery) &&
+    isStrategyLikeTitle(normalizedTitle) &&
+    hasTopicMatchInTitle
+  ) {
+    score += 20;
+  }
 
   const acquisitionWords = [
     "obtained",
@@ -171,7 +183,9 @@ function scoreChunk(queryText, chunk) {
   );
 
   const topicMentionsInChunk = topicWords.reduce((total, topicWord) => {
-    const matches = normalizedChunkText.match(new RegExp(`\\b${topicWord}\\b`, "g"));
+    const matches = normalizedChunkText.match(
+      new RegExp(`\\b${topicWord}\\b`, "g"),
+    );
 
     return total + (matches?.length || 0);
   }, 0);
@@ -180,9 +194,9 @@ function scoreChunk(queryText, chunk) {
     normalizedTitle.includes(topicWord),
   );
 
-  let acquisitionWordMatches = 0;
+  if (isAcquisitionQuestion(normalizedQuery)) {
+    let acquisitionWordMatches = 0;
 
-  if (isAcquisitionQuestion) {
     for (const word of acquisitionWords) {
       if (normalizedChunkText.includes(word)) {
         acquisitionWordMatches += 1;
@@ -227,23 +241,11 @@ function scoreChunk(queryText, chunk) {
     normalizedChunkText.includes("internal projectile id");
 
   if (looksLikeVersionHistory) {
-    score -= isAcquisitionQuestion ? 30 : 12;
+    score -= isAcquisitionQuestion(normalizedQuery) ? 30 : 12;
   }
 
   if (looksLikeInternalData) {
     score -= 30;
-  }
-
-  const hasTopicMatchInTitle = queryWords.some((queryWord) =>
-    normalizedTitle.includes(queryWord),
-  );
-
-  if (
-    isPreparationQuestion(normalizedQuery) &&
-    isStrategyLikeTitle(normalizedTitle) &&
-    hasTopicMatchInTitle
-  ) {
-    score += 20;
   }
 
   if (
@@ -257,64 +259,12 @@ function scoreChunk(queryText, chunk) {
   return Math.max(score, 0);
 }
 
-async function loadWikiChunks() {
-  const fileContents = await readFile(WIKI_CHUNKS_PATH, "utf-8");
+async function loadJson(filePath) {
+  const fileContents = await readFile(filePath, "utf-8");
   return JSON.parse(fileContents);
 }
 
-function splitTextIntoSentences(text) {
-  return text
-    .split(/(?<=[.!?])\s+|\s+-\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
-}
-
-function scoreSentence(queryText, sentence) {
-  const queryWords = getUniqueWords(getImportantWords(queryText));
-  const normalizedSentence = normalizeText(sentence);
-
-  let score = 0;
-
-  for (const queryWord of queryWords) {
-    if (normalizedSentence.includes(queryWord)) {
-      score += 1;
-    }
-  }
-
-  return score;
-}
-
-function getPreviewText(text, maxLength = 500) {
-  if (text.length <= maxLength) {
-    return text;
-  }
-
-  return `${text.slice(0, maxLength).trim()}...`;
-}
-
-function getRelevantPreviewText(queryText, text, maxLength = 500) {
-  const sentences = splitTextIntoSentences(text);
-
-  const relevantSentences = sentences
-    .map((sentence) => ({
-      sentence,
-      score: scoreSentence(queryText, sentence),
-    }))
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((result) => result.sentence);
-
-  if (relevantSentences.length === 0) {
-    return getPreviewText(text, maxLength);
-  }
-
-  return getPreviewText(relevantSentences.join(" "), maxLength);
-}
-
-async function main() {
-  const chunks = await loadWikiChunks();
-
+function searchWikiChunks(chunks, query, limit = 4) {
   const scoredResults = chunks
     .map((chunk) => ({
       chunk,
@@ -326,17 +276,7 @@ async function main() {
   const topScore = scoredResults[0]?.score || 0;
   const normalizedQuery = normalizeText(query);
 
-  const isAcquisitionSearch =
-    normalizedQuery.includes("get") ||
-    normalizedQuery.includes("obtain") ||
-    normalizedQuery.includes("craft") ||
-    normalizedQuery.includes("make") ||
-    normalizedQuery.includes("find") ||
-    normalizedQuery.includes("buy") ||
-    normalizedQuery.includes("drop") ||
-    normalizedQuery.includes("where");
-
-  const minimumScore = isAcquisitionSearch
+  const minimumScore = isAcquisitionQuestion(normalizedQuery)
     ? Math.max(8, topScore * 0.5)
     : Math.max(8, topScore * 0.35);
 
@@ -368,35 +308,64 @@ async function main() {
     selectedChunkIds.add(chunkId);
     sourceCounts.set(sourceKey, currentSourceCount + 1);
 
-    if (selectedResults.length >= 5) {
+    if (selectedResults.length >= limit) {
       break;
     }
   }
 
-  const results = selectedResults;
+  return selectedResults;
+}
 
-  console.log(`Search query: ${query}`);
-  console.log(`Chunks searched: ${chunks.length}`);
+function hasAnyExpectedSource(retrievedTitles, expectedSources) {
+  return expectedSources.some((expectedSource) =>
+    retrievedTitles.some(
+      (retrievedTitle) =>
+        normalizeText(retrievedTitle) === normalizeText(expectedSource),
+    ),
+  );
+}
 
-  if (results.length === 0) {
-    console.log("\nNo matching chunks found.");
-    return;
+async function main() {
+  const evalQuestions = await loadJson(EVAL_QUESTIONS_PATH);
+  const chunks = await loadJson(WIKI_CHUNKS_PATH);
+
+  let passCount = 0;
+
+  console.log(`Questions: ${evalQuestions.length}`);
+  console.log(`Chunks: ${chunks.length}`);
+
+  for (const evalQuestion of evalQuestions) {
+    const results = searchWikiChunks(chunks, evalQuestion.question, 4);
+    const retrievedTitles = [
+      ...new Set(results.map((result) => result.chunk.title)),
+    ];
+
+    const passed = hasAnyExpectedSource(
+      retrievedTitles,
+      evalQuestion.expectedSources,
+    );
+
+    if (passed) {
+      passCount += 1;
+    }
+
+    console.log("\n----------------------------------------");
+    console.log(`${passed ? "PASS" : "FAIL"} ${evalQuestion.id}`);
+    console.log(`Q: ${evalQuestion.question}`);
+    console.log(`Expected one of: ${evalQuestion.expectedSources.join(", ")}`);
+    console.log(`Retrieved: ${retrievedTitles.join(", ") || "none"}`);
+
+    if (!passed) {
+      console.log(`Notes: ${evalQuestion.notes}`);
+    }
   }
 
-  console.log("\nTop matches:");
-
-  results.forEach((result, index) => {
-    console.log(`\n${index + 1}. ${result.chunk.title}`);
-    console.log(`Chunk ID: ${result.chunk.id}`);
-    console.log(`Score: ${result.score}`);
-    console.log(`Source: ${result.chunk.sourceUrl}`);
-    console.log("Text preview:");
-    console.log(getRelevantPreviewText(query, result.chunk.text));
-  });
+  console.log("\n========================================");
+  console.log(`Retrieval pass rate: ${passCount}/${evalQuestions.length}`);
 }
 
 main().catch((error) => {
-  console.error("Failed to search wiki index.");
+  console.error("Failed to evaluate retrieval.");
 
   if (error instanceof Error) {
     console.error(error.message);

@@ -101,11 +101,76 @@ function decodeHtmlEntities(text) {
   });
 }
 
-function removeUnwantedWikiHtml(html) {
-  return html
+const MAX_TABLE_ROWS_TO_KEEP = 80;
+const MAX_TABLE_CELL_LENGTH = 140;
+
+function cleanTableCellText(html) {
+  return decodeHtmlEntities(html)
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<table[\s\S]*?<\/table>/gi, " ")
+    .replace(/<sup[\s\S]*?<\/sup>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\[\s*edit\s*\]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_TABLE_CELL_LENGTH);
+}
+
+function convertHtmlTableToText(tableHtml) {
+  const rowMatches = tableHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const rows = [];
+
+  for (const rowHtml of rowMatches.slice(0, MAX_TABLE_ROWS_TO_KEEP)) {
+    const cellMatches = rowHtml.match(/<(th|td)[^>]*>[\s\S]*?<\/\1>/gi) || [];
+
+    const cells = cellMatches
+      .map((cellHtml) => cleanTableCellText(cellHtml))
+      .filter(Boolean);
+
+    if (cells.length > 0) {
+      rows.push(cells);
+    }
+  }
+
+  if (rows.length === 0) {
+    return " ";
+  }
+
+  const headerRow = rows[0];
+  const bodyRows = rows.slice(1);
+
+  const tableLines = bodyRows.map((row) => {
+    const labeledCells = row.map((cell, index) => {
+      const header = headerRow[index];
+
+      if (header && header.length <= 40 && header !== cell) {
+        return `${header}: ${cell}`;
+      }
+
+      return cell;
+    });
+
+    return `- ${labeledCells.join("; ")}`;
+  });
+
+  if (tableLines.length === 0) {
+    return `\n${headerRow.join("; ")}\n`;
+  }
+
+  return `\n${tableLines.join("\n")}\n`;
+}
+
+function convertTablesToText(html) {
+  return html.replace(/<table[\s\S]*?<\/table>/gi, (tableHtml) =>
+    convertHtmlTableToText(tableHtml),
+  );
+}
+
+function removeUnwantedWikiHtml(html) {
+  return convertTablesToText(html)
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<figure[\s\S]*?<\/figure>/gi, " ")
     .replace(/<sup[\s\S]*?<\/sup>/gi, " ")
     .replace(

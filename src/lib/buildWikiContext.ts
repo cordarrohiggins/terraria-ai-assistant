@@ -76,6 +76,39 @@ function scoreSentence(userMessage: string, sentence: string) {
     }
   }
 
+  const normalizedUserMessage = normalizeText(userMessage);
+
+  const isAcquisitionQuestion =
+    normalizedUserMessage.includes("get") ||
+    normalizedUserMessage.includes("obtain") ||
+    normalizedUserMessage.includes("craft") ||
+    normalizedUserMessage.includes("make") ||
+    normalizedUserMessage.includes("find") ||
+    normalizedUserMessage.includes("buy") ||
+    normalizedUserMessage.includes("drop") ||
+    normalizedUserMessage.includes("where");
+
+  const userAskedForConversionMethod =
+    normalizedUserMessage.includes("shimmer") ||
+    normalizedUserMessage.includes("decraft") ||
+    normalizedUserMessage.includes("recycle") ||
+    normalizedUserMessage.includes("convert") ||
+    normalizedUserMessage.includes("replace");
+
+  const looksLikeConversionMethod =
+    normalizedSentence.includes("shimmer") ||
+    normalizedSentence.includes("decraft") ||
+    normalizedSentence.includes("recycle") ||
+    normalizedSentence.includes("convert");
+
+  if (
+    isAcquisitionQuestion &&
+    !userAskedForConversionMethod &&
+    looksLikeConversionMethod
+  ) {
+    score -= 5;
+  }
+
   return score;
 }
 

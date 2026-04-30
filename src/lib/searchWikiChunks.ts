@@ -214,12 +214,20 @@ function scoreChunk(queryText: string, chunk: WikiChunk) {
       }
     }
 
+    if (acquisitionWordMatches >= 2) {
+      score += 8;
+    }
+
+    if (acquisitionWordMatches >= 4) {
+      score += 8;
+    }
+
     if (acquisitionWordMatches === 0) {
-      score -= 18;
+      score -= 24;
     }
 
     if (!topicMatchesTitle && topicMentionsInChunk < 2) {
-      score -= 18;
+      score -= 24;
     }
   }
 

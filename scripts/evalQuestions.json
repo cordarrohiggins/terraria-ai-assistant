@@ -1,0 +1,92 @@
+[
+  {
+    "id": "wings-basic",
+    "question": "How do I get wings?",
+    "expectedSources": ["Wings"],
+    "helpfulSources": ["Guide:Getting started with Hardmode"],
+    "shouldMention": ["Hardmode", "Souls of Flight"],
+    "shouldNotMention": ["Shiny Red Balloon", "Frog Leg"],
+    "notes": "Should explain the general process for getting wings, not imply unrelated mobility accessories are ingredients."
+  },
+  {
+    "id": "souls-of-flight",
+    "question": "How do I get Souls of Flight?",
+    "expectedSources": ["Soul of Flight"],
+    "helpfulSources": ["Wyvern"],
+    "shouldMention": ["Wyvern"],
+    "shouldNotMention": [],
+    "notes": "Should explain that Souls of Flight come from Wyverns or Arch Wyverns depending on version/context."
+  },
+  {
+    "id": "nights-edge",
+    "question": "How do I craft Night's Edge?",
+    "expectedSources": ["Night's Edge"],
+    "helpfulSources": [],
+    "shouldMention": ["Blade of Grass", "Muramasa", "Volcano", "Light's Bane", "Blood Butcherer"],
+    "shouldNotMention": [],
+    "notes": "Should list the required swords and avoid unrelated Hardmode info."
+  },
+  {
+    "id": "goblin-tinkerer",
+    "question": "How do I find the Goblin Tinkerer?",
+    "expectedSources": ["Goblin Tinkerer"],
+    "helpfulSources": ["Goblin Army"],
+    "shouldMention": ["bound", "Cavern"],
+    "shouldNotMention": [],
+    "notes": "Should explain finding him bound underground after the Goblin Army condition."
+  },
+  {
+    "id": "mechanical-bosses-after",
+    "question": "What do I do after I beat all three mechanical bosses?",
+    "expectedSources": ["Mechanical bosses"],
+    "helpfulSources": ["Plantera", "Guide:Plantera strategies"],
+    "shouldMention": ["Plantera", "Underground Jungle"],
+    "shouldNotMention": ["Wall of Flesh"],
+    "notes": "Should explain that Plantera becomes the next major progression target without weird Wall of Flesh edge cases."
+  },
+  {
+    "id": "plantera-prep",
+    "question": "How should I prepare for Plantera?",
+    "expectedSources": ["Guide:Plantera strategies"],
+    "helpfulSources": ["Plantera"],
+    "shouldMention": ["arena", "Campfires", "Heart Lanterns"],
+    "shouldNotMention": [],
+    "notes": "Should use the strategy guide and avoid vague advice."
+  },
+  {
+    "id": "wall-of-flesh-prep",
+    "question": "How should I prepare for the Wall of Flesh?",
+    "expectedSources": ["Guide:Wall of Flesh strategies", "Wall of Flesh"],
+    "helpfulSources": [],
+    "shouldMention": ["Underworld"],
+    "shouldNotMention": [],
+    "notes": "Should focus on pre-Hardmode preparation and the Underworld fight."
+  },
+  {
+    "id": "skeletron-armor",
+    "question": "What armor should I use before fighting Skeletron?",
+    "expectedSources": ["Guide:Skeletron strategies", "Skeletron"],
+    "helpfulSources": ["Guide:Class setups"],
+    "shouldMention": ["armor"],
+    "shouldNotMention": [],
+    "notes": "Should not pull random late-game armor unless the guide context supports it."
+  },
+  {
+    "id": "queen-bee-summon",
+    "question": "How do I summon Queen Bee?",
+    "expectedSources": ["Queen Bee", "Abeemination", "Larva"],
+    "helpfulSources": [],
+    "shouldMention": ["Larva", "Abeemination"],
+    "shouldNotMention": [],
+    "notes": "Should explain both common summon methods if context supports them."
+  },
+  {
+    "id": "hardmode-start",
+    "question": "What should I do when I first enter Hardmode?",
+    "expectedSources": ["Hardmode", "Guide:Getting started with Hardmode"],
+    "helpfulSources": ["Guide:Game progression"],
+    "shouldMention": ["Hardmode"],
+    "shouldNotMention": [],
+    "notes": "Should give broad early-Hardmode guidance without jumping too far ahead."
+  }
+]

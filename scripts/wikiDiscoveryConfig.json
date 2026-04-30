@@ -51,6 +51,10 @@
     {
       "name": "Bars",
       "limit": 100
+    },
+    {
+      "name": "Crafting material items",
+      "limit": 500
     }
   ],
   "prefixes": [
